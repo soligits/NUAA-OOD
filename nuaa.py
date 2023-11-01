@@ -4,6 +4,8 @@ import gdown
 import zipfile
 from glob import glob
 from PIL import Image
+import numpy as np
+import shutil
 
 class NUAA(Dataset):
 
@@ -23,6 +25,7 @@ class NUAA(Dataset):
         self.format = format
         self.verbose = verbose
         self.normal_split = normal_split
+        self.n_classes = 14
         if isinstance(chosen_classes, int):
             chosen_classes = [chosen_classes]
         self.chosen_classes = chosen_classes
@@ -38,9 +41,18 @@ class NUAA(Dataset):
         if not os.path.exists(file_path):
             gdown.download(self.links[self.format], file_path, fuzzy=True, quiet=not self.verbose)
         
-        if not os.path.exists(os.path.join(self.root, self.format)):
+        data_path = os.path.join(self.root, self.format)
+        if not os.path.exists(data_path):
             with zipfile.ZipFile(file_path, 'r') as zip_ref:
                 zip_ref.extractall(self.root)
+        
+            shutil.rmtree(os.path.join(data_path, 'ClientRaw', f'{13:0>4}'), )
+            shutil.rmtree(os.path.join(data_path, 'ImposterRaw', f'{16:0>4}'))
+
+            for i, dir in enumerate(sorted(glob(os.path.join(data_path, 'ClientRaw', '*')))):
+                os.rename(dir, os.path.join(data_path, 'ClientRaw', f'{i}'))
+            for i, dir in enumerate(sorted(glob(os.path.join(data_path, 'ImposterRaw', '*')))):
+                os.rename(dir, os.path.join(data_path, 'ImposterRaw', f'{i}'))
     
     def _load_data(self):
         data = []
@@ -49,7 +61,7 @@ class NUAA(Dataset):
         search_dirs = glob(os.path.join(data_path, 'ClientRaw', '*'))
         if self.train is False:
             search_dirs += glob(os.path.join(data_path, 'ImposterRaw', '*'))
-        chosen_dirs = list(filter(lambda path: int(os.path.basename(path)) - 1 in self.chosen_classes, search_dirs))
+        chosen_dirs = list(filter(lambda path: int(os.path.basename(path)) in self.chosen_classes, search_dirs))
         for dir in chosen_dirs:
             target = os.path.basename(os.path.split(dir)[0]) == 'ImposterRaw'
             if self.train:
