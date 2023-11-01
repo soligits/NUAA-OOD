@@ -1,4 +1,4 @@
-from torch.utils import Dataset
+from torch.utils.data import Dataset
 import os
 import gdown
 import zipfile
@@ -28,8 +28,7 @@ class NUAA(Dataset):
         self.chosen_classes = chosen_classes
         if download:
             self._download_and_extract()
-        self.data = []
-        self.targets = []
+        self.data, self.targets = self._load_data()
 
     def _download_and_extract(self):
         if not os.path.exists(self.root):
@@ -44,9 +43,11 @@ class NUAA(Dataset):
                 zip_ref.extractall(self.root)
     
     def _load_data(self):
+        data = []
+        targets = []
         data_path = os.path.join(self.root, self.format)
         search_dirs = glob(os.path.join(data_path, 'ClientRaw', '*')) + glob(os.path.join(data_path, 'ImposterRaw', '*'))
-        chosen_dirs = list(filter(lambda path: int(os.path.basename(path)) in self.chosen_classes, search_dirs))
+        chosen_dirs = list(filter(lambda path: int(os.path.basename(path)) - 1 in self.chosen_classes, search_dirs))
         for dir in chosen_dirs:
             target = os.path.basename(os.path.split(dir)[0]) == 'ImposterRaw'
             if self.train:
@@ -55,8 +56,9 @@ class NUAA(Dataset):
                 file_slice = slice(int(len(os.listdir(dir)) * self.normal_split), None)
             files = glob(os.path.join(dir, '*.jpg'))[file_slice]
             for file in files:
-                self.data.append(file)
-                self.targets.append(target)
+                data.append(file)
+                targets.append(target)
+        return data, targets
 
 
     def __getitem__(self, index):
