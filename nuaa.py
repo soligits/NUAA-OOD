@@ -46,7 +46,9 @@ class NUAA(Dataset):
         data = []
         targets = []
         data_path = os.path.join(self.root, self.format)
-        search_dirs = glob(os.path.join(data_path, 'ClientRaw', '*')) + glob(os.path.join(data_path, 'ImposterRaw', '*'))
+        search_dirs = glob(os.path.join(data_path, 'ClientRaw', '*'))
+        if self.train is False:
+            search_dirs += glob(os.path.join(data_path, 'ImposterRaw', '*'))
         chosen_dirs = list(filter(lambda path: int(os.path.basename(path)) - 1 in self.chosen_classes, search_dirs))
         for dir in chosen_dirs:
             target = os.path.basename(os.path.split(dir)[0]) == 'ImposterRaw'
